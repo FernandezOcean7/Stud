@@ -871,6 +871,7 @@ function resetTimer() { finishStudy(); }
 // CUSTOM QUIZ MAKER
 // ======================================
 let activeCustomQuiz = null;
+let editingQuizId = null;
 let typingQuestionIndex = 0;
 let typingScore = 0;
 let typingResults = [];
@@ -882,14 +883,65 @@ function hideQuizScreens() {
     document.getElementById("quiz-taking").classList.add("hidden");
     document.getElementById("custom-quiz-result").classList.add("hidden");
 }
-function openQuizCreator() {
+function openQuizCreator(quizId = null) {
     hideQuizScreens();
+
     document.getElementById("quiz-creator").classList.remove("hidden");
     document.body.classList.add("modal-open");
-    document.getElementById("custom-quiz-title").value = "";
-    document.getElementById("custom-quiz-subject").value = "";
-    document.getElementById("question-builder").innerHTML = "";
-    addQuestionField();
+
+    editingQuizId = quizId;
+
+    const container = document.getElementById("question-builder");
+    container.innerHTML = "";
+
+    if (quizId !== null) {
+        const quiz = customQuizzes.find(item => item.id === quizId);
+
+        if (!quiz) {
+            showToast("Quiz not found!", "error");
+            closeQuizCreator();
+            return;
+        }
+
+        document.getElementById("custom-quiz-title").value = quiz.title;
+        document.getElementById("custom-quiz-subject").value = quiz.subject;
+
+        quiz.questions.forEach(question => {
+            addQuestionField();
+
+            const item = container.lastElementChild;
+
+            item.querySelector(".builder-question").value = question.question;
+
+            const answers = Array.isArray(question.answers)
+                ? question.answers
+                : Array.isArray(question.answer)
+                    ? question.answer
+                    : [question.answer || ""];
+
+            const answerContainer = item.querySelector(".builder-answers");
+            answerContainer.innerHTML = "";
+
+            answers.forEach(answer => {
+                addAnswerField(item.querySelector(".add-answer-button"));
+
+                answerContainer.lastElementChild
+                    .querySelector(".builder-answer").value = answer;
+            });
+        });
+
+        document.querySelector("#quiz-creator h2").textContent = "Edit Quiz";
+        document.querySelector("#quiz-creator button[onclick='saveCustomQuiz()']").textContent = "Save Changes";
+
+    } else {
+        document.getElementById("custom-quiz-title").value = "";
+        document.getElementById("custom-quiz-subject").value = "";
+
+        document.querySelector("#quiz-creator h2").textContent = "Create Your Quiz";
+        document.querySelector("#quiz-creator button[onclick='saveCustomQuiz()']").textContent = "Create Quiz";
+
+        addQuestionField();
+    }
 }
 function closeQuizCreator() {
     hideQuizScreens();
@@ -907,31 +959,74 @@ function exitQuiz() {
 function addQuestionField() {
     const container = document.getElementById("question-builder");
     const questionNumber = container.children.length + 1;
+
     const questionBox = document.createElement("div");
     questionBox.className = "question-builder-item";
+
     questionBox.innerHTML = `
         <div class="question-builder-top">
             <strong>Question ${questionNumber}</strong>
-            <button type="button"
-                class="remove-question"
+            <button type="button" class="remove-question"
                 onclick="removeQuestionField(this)">
                 ✕ Remove
             </button>
         </div>
-        <textarea
-            class="builder-question"
+
+        <textarea class="builder-question"
             placeholder="Type your question here..."
             required></textarea>
-        <input
-            type="text"
-            class="builder-answer"
-            placeholder="Enter the correct answer..."
-            required>
+
+        <div class="answer-builder-heading">
+            <strong>Acceptable Answers</strong>
+            <span>Students can enter any one of these.</span>
+        </div>
+
+        <div class="builder-answers"></div>
+
+        <button type="button" class="add-answer-button"
+            onclick="addAnswerField(this)">
+            + Add Another Correct Answer
+        </button>
     `;
+
     container.appendChild(questionBox);
+    addAnswerField(questionBox.querySelector(".add-answer-button"));
     updateQuestionCounter();
+
     questionBox.querySelector(".builder-question").focus();
 }
+
+function addAnswerField(button) {
+    const questionBox = button.closest(".question-builder-item");
+    const answersContainer = questionBox.querySelector(".builder-answers");
+
+    const answerRow = document.createElement("div");
+    answerRow.className = "builder-answer-row";
+
+    answerRow.innerHTML = `
+        <input type="text" class="builder-answer"
+            placeholder="Enter an acceptable answer..." required>
+
+        <button type="button" class="remove-answer-button"
+            onclick="removeAnswerField(this)" aria-label="Remove answer">
+            ✕
+        </button>
+    `;
+
+    answersContainer.appendChild(answerRow);
+}
+
+function removeAnswerField(button) {
+    const answersContainer = button.closest(".builder-answers");
+
+    if (answersContainer.children.length <= 1) {
+        showToast("Each question needs at least one correct answer!", "error");
+        return;
+    }
+
+    button.closest(".builder-answer-row").remove();
+}
+
 function removeQuestionField(button) {
     const container = document.getElementById("question-builder");
     if (container.children.length <= 1) {
@@ -959,35 +1054,68 @@ function updateQuestionCounter() {
 function saveCustomQuiz() {
     const title = document.getElementById("custom-quiz-title").value.trim();
     const subject = document.getElementById("custom-quiz-subject").value.trim();
+
     const questionItems = document.querySelectorAll(".question-builder-item");
+
     if (!title || !subject) {
         showToast("Please enter a quiz title and subject!", "error");
         return;
     }
+
     const questions = [];
+
     for (const item of questionItems) {
         const question = item.querySelector(".builder-question").value.trim();
-        const answer = item.querySelector(".builder-answer").value.trim();
-        if (!question || !answer) {
-            showToast("Please complete every question and its correct answer!", "error");
+
+        const answers = Array.from(
+            item.querySelectorAll(".builder-answer")
+        )
+            .map(input => input.value.trim())
+            .filter(Boolean);
+
+        if (!question || answers.length === 0) {
+            showToast("Please complete every question and its correct answers!", "error");
             return;
         }
-        questions.push({ question, answer });
+
+        questions.push({ question, answers });
     }
+
     if (questions.length === 0) {
         showToast("Please add at least one question!", "error");
         return;
     }
-    const newQuiz = {
-        id: Date.now(),
-        title,
-        subject,
-        questions,
-        createdAt: new Date().toLocaleDateString()
-    };
-    customQuizzes.unshift(newQuiz);
+
+    if (editingQuizId !== null) {
+        const quiz = customQuizzes.find(item => item.id === editingQuizId);
+
+        if (!quiz) {
+            showToast("Quiz not found!", "error");
+            return;
+        }
+
+        quiz.title = title;
+        quiz.subject = subject;
+        quiz.questions = questions;
+
+        showToast("Quiz updated successfully! 🎉", "success");
+
+    } else {
+        customQuizzes.unshift({
+            id: Date.now(),
+            title,
+            subject,
+            questions,
+            createdAt: new Date().toLocaleDateString()
+        });
+
+        showToast("Your quiz has been created! 🎉", "success");
+    }
+
     saveData();
-    showToast("Your quiz has been successfully created! 🎉", "success");
+
+    editingQuizId = null;
+
     closeQuizCreator();
     renderCustomQuizzes();
     renderDashboard();
@@ -1020,15 +1148,23 @@ function renderCustomQuizzes() {
                 · Created ${escapeHTML(quiz.createdAt || "")}
             </p>
             <div class="quiz-card-actions">
+
                 <button class="quiz-play-button"
-                    onclick="startCustomQuiz(${quiz.id})">
+                    onclick="chooseQuizOrder(${quiz.id})">
                     Start Quiz →
                 </button>
+
+                <button class="quiz-edit-button"
+                    onclick="openQuizCreator(${quiz.id})">
+                    ✎ Edit
+                </button>
+
                 <button class="quiz-delete-button"
                     aria-label="Delete quiz"
                     onclick="deleteCustomQuiz(${quiz.id})">
                     ✕
                 </button>
+
             </div>
         </div>
     `).join("");
@@ -1055,22 +1191,98 @@ function deleteCustomQuiz(id) {
     );
 }
 // START QUIZ
-function startCustomQuiz(id) {
+function chooseQuizOrder(id) {
+    const existing = document.getElementById("quiz-order-modal");
+
+    if (existing) existing.remove();
+
+    const modal = document.createElement("div");
+    modal.id = "quiz-order-modal";
+    modal.className = "creation-overlay";
+
+    modal.innerHTML = `
+        <div class="creation-modal quiz-order-modal">
+            <h2>How would you like to play? 🎯</h2>
+            <p class="creation-description">
+                Choose the order of your questions.
+            </p>
+
+            <div class="quiz-order-actions">
+                <button class="secondary-button"
+                    onclick="startCustomQuiz(${id}, false)">
+                    Normal Order
+                    <span>Follow the original question order.</span>
+                </button>
+
+                <button class="primary-button"
+                    onclick="startCustomQuiz(${id}, true)">
+                    Random Order
+                    <span>Shuffle the questions each time.</span>
+                </button>
+            </div>
+
+            <button class="secondary-button quiz-order-cancel"
+                onclick="document.getElementById('quiz-order-modal').remove()">
+                Cancel
+            </button>
+        </div>
+    `;
+
+    modal.addEventListener("click", event => {
+        if (event.target === modal) modal.remove();
+    });
+
+    document.body.appendChild(modal);
+}
+
+let activeQuizRandomized = false;
+
+function startCustomQuiz(id, randomize = false) {
     const quiz = customQuizzes.find(item => item.id === id);
+
     if (!quiz) return;
+
     if (!Array.isArray(quiz.questions) || quiz.questions.length === 0) {
         showToast("This quiz has no questions.", "error");
         return;
     }
-    activeCustomQuiz = quiz;
+
+    activeCustomQuiz = {
+        ...quiz,
+        questions: [...quiz.questions]
+    };
+
+    activeQuizRandomized = randomize;
+
+    if (randomize) {
+        for (let i = activeCustomQuiz.questions.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+
+            [
+                activeCustomQuiz.questions[i],
+                activeCustomQuiz.questions[j]
+            ] = [
+                activeCustomQuiz.questions[j],
+                activeCustomQuiz.questions[i]
+            ];
+        }
+    }
+
+    const modal = document.getElementById("quiz-order-modal");
+    if (modal) modal.remove();
+
     typingQuestionIndex = 0;
     typingScore = 0;
     typingResults = [];
     answerChecked = false;
+
     hideQuizScreens();
+
     document.getElementById("quiz-taking").classList.remove("hidden");
+
     document.getElementById("taking-quiz-title").textContent = quiz.title;
     document.getElementById("taking-quiz-subject").textContent = quiz.subject;
+
     showTypingQuestion();
 }
 // DISPLAY EACH QUESTION
@@ -1108,37 +1320,59 @@ function normalizeAnswer(answer) {
 }
 function checkTypedAnswer() {
     if (answerChecked) return;
+
     const input = document.getElementById("typed-answer");
     const studentAnswer = input.value.trim();
+
     if (!studentAnswer) {
         showToast("Please type your answer first!", "error");
         input.focus();
         return;
     }
+
     const question = activeCustomQuiz.questions[typingQuestionIndex];
-    const correct =
-        normalizeAnswer(studentAnswer) === normalizeAnswer(question.answer);
+
+    const correctAnswers = Array.isArray(question.answers)
+        ? question.answers
+        : Array.isArray(question.answer)
+            ? question.answer
+            : [question.answer];
+
+    const correct = correctAnswers.some(answer =>
+        normalizeAnswer(studentAnswer) === normalizeAnswer(answer)
+    );
+
     answerChecked = true;
+
     if (correct) {
         typingScore++;
+
         document.getElementById("typing-feedback").textContent =
             "✓ Correct! Excellent work! 🎉";
+
         document.getElementById("typing-feedback").style.color = "#55a879";
     } else {
         document.getElementById("typing-feedback").textContent =
-            `✗ Not quite! Correct answer: ${question.answer}`;
+            `✗ Not quite! Correct answers: ${correctAnswers.join(" / ")}`;
+
         document.getElementById("typing-feedback").style.color = "#d46c6c";
     }
+
     typingResults.push({
         question: question.question,
         studentAnswer,
-        correctAnswer: question.answer,
+        correctAnswer: correctAnswers.join(" / "),
         correct
     });
+
     input.disabled = true;
+
     document.getElementById("check-answer-button").classList.add("hidden");
+
     const nextButton = document.getElementById("next-typing-question");
+
     nextButton.classList.remove("hidden");
+
     nextButton.textContent =
         typingQuestionIndex === activeCustomQuiz.questions.length - 1
             ? "Finish Quiz ✓"
@@ -1195,7 +1429,7 @@ function showCustomQuizResult() {
 // RETRY QUIZ
 function retryCustomQuiz() {
     if (activeCustomQuiz) {
-        startCustomQuiz(activeCustomQuiz.id);
+        startCustomQuiz(activeCustomQuiz.id, activeQuizRandomized);
     }
 }
 // ======================================

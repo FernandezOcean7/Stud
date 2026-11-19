@@ -4695,3 +4695,171 @@ body.note-editor-open { overflow: hidden; }
     .note-editor-scroll { padding: 10px; }
     .note-editor-content { padding: 22px 18px 55px; font-size: 15px; }
 }
+/* MULTIPLE CORRECT ANSWERS */
+
+.answer-builder-heading {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 12px 0 10px;
+}
+
+.answer-builder-heading strong {
+    font-size: 12px;
+}
+
+.answer-builder-heading span {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.builder-answer-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 9px;
+}
+
+.builder-answer-row input {
+    flex: 1;
+    margin-bottom: 0 !important;
+}
+
+.remove-answer-button {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 9px;
+    background: #ffeded;
+    color: #cf6565;
+}
+
+.add-answer-button {
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    border-radius: 9px;
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    font-size: 11px;
+    font-weight: 900;
+}
+
+/* QUIZ QUESTION ORDER */
+
+.quiz-order-modal {
+    max-width: 460px;
+}
+
+.quiz-order-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 20px 0;
+}
+
+.quiz-order-actions button {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+    padding: 15px;
+    text-align: left;
+}
+
+.quiz-order-actions button span {
+    font-size: 11px;
+    font-weight: 600;
+    opacity: 0.8;
+}
+
+.quiz-order-cancel {
+    width: 100%;
+}
+
+.quiz-play-button {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px !important;
+    font-weight: 900;
+    color: white !important;
+    cursor: pointer;
+}
+
+
+/* =====================================
+   STUD LOGO - BRUSHED SILVER METALLIC
+===================================== */
+
+.sidebar .logo > span {
+    background-image:
+        linear-gradient(
+            115deg,
+            #777b80 0%,
+            #e9ecef 18%,
+            #aeb4ba 32%,
+            #ffffff 43%,
+            #92999f 57%,
+            #e3e6e9 72%,
+            #858b91 88%,
+            #d9dde0 100%
+        ),
+        repeating-linear-gradient(
+            90deg,
+            rgba(255,255,255,0.12) 0px,
+            rgba(255,255,255,0.12) 1px,
+            rgba(70,75,80,0.08) 2px,
+            transparent 3px
+        );
+
+    background-blend-mode: overlay;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+
+    filter: drop-shadow(0 1px 0 rgba(70, 70, 70, 0.18));
+}
+
+/* Metallic finish for the logo dot */
+.sidebar .logo .logo-dot {
+    background-image: linear-gradient(
+        135deg,
+        #777d83,
+        #ffffff 35%,
+        #a3aab0 60%,
+        #e8ebed
+    );
+
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+}
+/* EDIT CREATED QUIZ */
+
+.quiz-edit-button {
+    padding: 9px 12px;
+    border-radius: 9px;
+    background: #edf1f5;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.quiz-edit-button:hover {
+    background: #dfe6ed;
+    transform: translateY(-2px);
+}
+
+.quiz-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.quiz-card-actions .quiz-play-button {
+    flex: 1;
+}
